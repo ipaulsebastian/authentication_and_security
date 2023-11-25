@@ -5,7 +5,8 @@ const express = require("express");
 const bodyParser = require("body-parser"); 
 const mongoose = require("mongoose");
 
-const encrypt = require("mongoose-encryption");  //
+//------//const encrypt = require("mongoose-encryption");  
+const md5 = require('md5');
 
 const app = express();
 
@@ -28,7 +29,7 @@ const userSchema= new mongoose.Schema({           //mongoose.Schema is a constru
 console.log(process.env.API_KEY);       // In my opinion we should not be able to print even this.
 
 // Statement to encrypt the database below.
-userSchema.plugin(encrypt, {secret: process.env.OUR_SECRET, encryptedFields : ['password']});   // Schemas are pluggable, that is, they allow for applying pre-packaged capabilities to extend their functionality. This is a very powerful feature.
+//-----//userSchema.plugin(encrypt, {secret: process.env.OUR_SECRET, encryptedFields : ['password']});   // Schemas are pluggable, that is, they allow for applying pre-packaged capabilities to extend their functionality. This is a very powerful feature.
 
 const userModelConstructorFunction = new mongoose.model("UserCollection", userSchema);    // Creating a model constructor function. "UserCollection" mentioned as value in brackets is the name of the collection.
 // A model is a constructor function that is used to create new documents based on the defined schema. It also provides methods for querying and interacting with the MongoDB collection.
@@ -51,7 +52,7 @@ app.get("/register", function(req, res){
 app.post("/register", async function(req, res){
   const newUserModelObject = new userModelConstructorFunction({
     email: req.body.username,
-    password: req.body.password
+    password: md5(req.body.password)     //Create hash using md5 npm package. Level 3 security.
   });
 
   /*
@@ -74,7 +75,7 @@ app.post("/register", async function(req, res){
 
 app.post("/login", async function(req, res){
   const username = req.body.username;
-  const password = req.body.password;
+  const password = md5(req.body.password);      //Create hash using md5 npm package. Level 3 security.
 
   try{
     const foundUser = await userModelConstructorFunction.findOne({ email: username });
