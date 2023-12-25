@@ -1,4 +1,4 @@
-// Using passport.js to add cookies and sessions.
+// Level-5 security using passport.js to add cookies and sessions.
 
 const express = require("express");
 const bodyParser = require("body-parser"); 
