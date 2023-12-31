@@ -1,13 +1,27 @@
-// Level-5 security using passport.js to add cookies and sessions.
+// This is : Level 6 - OAuth 2.0 & How to Implement Sign In with Google.
+
+/*
+Different levels of security:
+
+Level 5 - Using passport.js to add cookies and sessions.
+Level 4 - Salting and hashing passwords.
+Level 3 - Hashing paswords.
+Level 2 - Database encryption and using environment variable to keep secrets safe. (Also .gitignore file.)
+Level 1 - Register users with just username and password.
+*/
 
 const express = require("express");
 const bodyParser = require("body-parser"); 
 const mongoose = require("mongoose");
+require('dotenv').config()
 
-// ***cookies*** using sessions and authentication using passport.
-const session = require('express-session');    // The express-session npm package is a middleware for managing sessions in Express.js, a popular web application framework for Node.js. Sessions are a crucial aspect of web applications as they allow the server to keep track of a user's state and data across multiple HTTP requests.
+const session = require("express-session");    // The express-session npm package is a middleware for managing sessions in Express.js, a popular web application framework for Node.js. Sessions are a crucial aspect of web applications as they allow the server to keep track of a user's state and data across multiple HTTP requests.
 const passport = require("passport");     //  Passport is a popular middleware for authentication in Node.js-based web applications. 
 const passportLocalMongoose = require("passport-local-mongoose");  //This is what will be used to hash and salt our passwords (Encrypt) and save our users into our mongoDB database.
+const GoogleStrategy = require("passport-google-oauth20").Strategy;  //If you put it above this line it won't work according to Angela.
+const findOrCreate = require("mongoose-findorcreate");
+
+// --------------------------------------------------
 
 const app = express();
 
@@ -15,7 +29,6 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.set('view engine', 'ejs');
 app.use(express.static("public"));
 
-// ***cookies*** using sessions and authentication using passport.
 app.use(session({                                 // What are all these parameters and what do they do?
   secret: 'Our little secret - keyboard cat',
   resave: false,
@@ -23,19 +36,20 @@ app.use(session({                                 // What are all these paramete
   //cookie: { secure: true }
 }))
 
-// ***cookies*** using sessions and authentication using passport.
 app.use(passport.initialize());  // Initializes Passport middleware, enabling authentication setup and usage with various strategies in an Express app. After initialization, Passport can be configured with various authentication strategies such as LocalStrategy, OAuth, JWT, etc.
 app.use(passport.session());   // Initializes and utilizes session support for persistent login sessions using Passport.
+
+// --------------------------------------------------
 
 mongoose.connect("mongodb://localhost:27017/userDB",{useNewURLParser:true});
 
 const userSchema= new mongoose.Schema({           //mongoose.Schema is a constructor function. Inorder to encrypt we are creating a mongoose schema.
   email: String,
   password: String,
+  googleId: String,
   active: Boolean     // For allowing only "active" users to authenticate. One example I can think  of is for cases like banning users etc.
 });                         // Creating schema.
 
-// ***cookies*** using sessions and authentication using passport.
 //userSchema.plugin(passportLocalMongoose);   //This is what will be used to hash and salt our passwords and save our users into our mongoDB database.
  
 userSchema.plugin(passportLocalMongoose, {
@@ -48,23 +62,63 @@ userSchema.plugin(passportLocalMongoose, {
     return model.findOne(queryParameters);
   }
 });
+userSchema.plugin(findOrCreate);
 
 const userModelConstructorFunction = new mongoose.model("UserCollection", userSchema);    // Creating a model constructor function. "UserCollection" mentioned as value in brackets is the name of the collection.
 // A model is a constructor function that is used to create new documents based on the defined schema. It also provides methods for querying and interacting with the MongoDB collection.
 
-// ***cookies*** using sessions and authentication using passport.
+// ----------------------------------------------------
+
 // syntax --> passport.use(strategy);      // All strategies have a name which, by convention, corresponds to the package name according to the pattern passport-{name}.
 passport.use(userModelConstructorFunction.createStrategy());    // ? // What is a strategy?  // This line of code is typically used when configuring Passport's authentication strategies, particularly with the LocalStrategy, in an Express.js application.
 
-// ***cookies*** using sessions and authentication using passport.
-passport.serializeUser(userModelConstructorFunction.serializeUser());  // ?  // configures Passport to serialize user information for storage in a session.
-passport.deserializeUser(userModelConstructorFunction.deserializeUser()); // ?  // configures Passport to deserialize user information from the session.
+passport.serializeUser(function(user, cb) {
+  process.nextTick(function() {
+    return cb(null, {
+      id: user.id,
+      username: user.username,
+      picture: user.picture
+    });
+  });
+});
+
+passport.deserializeUser(function(user, cb) {
+  process.nextTick(function() {
+    return cb(null, user);
+  });
+});
+
+// ------------------------------------------------------
+
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: "http://localhost:3000/auth/google/secrets"
+},
+function(accessToken, refreshToken, profile, cb) {
+  console.log(profile);    // Log the profile.
+  userModelConstructorFunction.findOrCreate({ googleId: profile.id }, function (err, user) {   //findOrCreate is not a mongodb function. It's something that the creators of this made up which we have to implement. So you can either write code for it or use an npm package called "mongoose-findorcreate".
+    return cb(err, user);
+  });
+}
+));
 
 // -----------------------------------------------------
 
 app.get("/", function(req, res){
   res.render("home");
 });
+
+app.get('/auth/google',
+  passport.authenticate('google', { scope: ["profile"] }));
+
+
+app.get('/auth/google/secrets', 
+  passport.authenticate('google', { failureRedirect: '/login' }),     //Authenticate the user locally here.
+  function(req, res) {
+    // Successful authentication, redirect secrets.
+    res.redirect('/secrets');
+  });
 
 app.get("/register", function(req, res){
   res.render("register");
