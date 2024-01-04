@@ -47,6 +47,7 @@ const userSchema= new mongoose.Schema({           //mongoose.Schema is a constru
   email: String,
   password: String,
   googleId: String,
+  secret: String,
   active: Boolean     // For allowing only "active" users to authenticate. One example I can think  of is for cases like banning users etc.
 });                         // Creating schema.
 
@@ -128,6 +129,8 @@ app.get("/login", function(req, res){
   res.render("login");
 });
 
+/*
+// Important.
 app.get("/secrets", function(req, res){   // Should this be post ?
   if (req.isAuthenticated()){   // Here authentication does not just refer to checking if the password entered by the user is matching the password stored in the database, it also is ensuring the the password matches the one stored in cookies session and so on...
     console.log("djikstra-1");
@@ -136,7 +139,30 @@ app.get("/secrets", function(req, res){   // Should this be post ?
     console.log("djikstra-2");
     res.redirect("/login");    // If not authenticated. 
   }
+});*/
+
+// Here we are trying to find the list of users with value in the secret field
+app.get("/secrets", async (req, res) => {
+  try {
+    const foundUsers = await userModelConstructorFunction.find({ "secret": { $ne: null } }); // users with secret field not null.
+    if (foundUsers.length > 0) {
+      res.render("secrets", { usersWithSecrets: foundUsers });    // "render" function in "res.render" comes from ejs. What enables it in "res" variable is "app.set('view engine', 'ejs')" statement I guess.  
+    } else {
+      // Handle case when no users with secrets are found
+      res.render("secrets", { usersWithSecrets: [] });            // Or handle as appropriate
+    }
+  } catch (err) {
+    console.log(err);
+  }
 });
+
+app.get("/submit", function(req, res){
+  if (req.isAuthenticated()){   // authentication does not just refer to checking if the password entered by the user is matching the password stored in the database, it also is ensuring that the password matches the one stored in cookies session and so on...
+    res.render("submit");
+  }else{
+    res.redirect("/login");     // If not authenticated. 
+  }
+})
 
 app.get('/logout', function(req, res, next){
   req.logout(function(err) {
@@ -149,6 +175,27 @@ app.get('/logout', function(req, res, next){
 });
 
 // ------------------------------------------------------------
+
+app.post("/submit", async function(req, res){
+  try{
+    const submittedSecret = req.body.secret;   // secret is the name of that input field.
+
+    console.log(req.user.id);    // Passport stores (not sure how though - I think I got it. The "app.use(passport...)" statements is what is enabling it I guess.) which user is logged in the "req" variable. You can access it using "req.user".
+  
+    // We are trying to save the secret submitted to the database.
+    const foundUser = await userModelConstructorFunction.findById(req.user.id) //Find the document with the given user ID.
+    console.log("aaa");
+    if (foundUser){                        // The value of foundUser is a mongodb document not true or false.
+      console.log("bbb");
+      foundUser.secret = submittedSecret;  //Submitted secret assigning to the foundUser document secret variable.
+      // The problem is here I think. It's not asynchronous.
+      await foundUser.save();
+      res.redirect("/secrets");          // After saving the document to the database, redirect the route to /secrets.
+    }
+  }catch(err){
+    console.log(err);
+  }
+});
 
 app.post("/register", function(req, res){
   userModelConstructorFunction.register({username:req.body.username, active: true}, req.body.password, function(err, user) {
