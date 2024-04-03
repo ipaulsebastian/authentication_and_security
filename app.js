@@ -3,7 +3,6 @@
 /*
 Different levels of security:
 
-Level 6 - OAuth 2.0 & How to Implement Sign In with Google.
 Level 5 - Using passport.js to add cookies and sessions.
 Level 4 - Salting and hashing passwords.
 Level 3 - Hashing paswords.
@@ -14,7 +13,7 @@ Level 1 - Register users with just username and password.
 const express = require("express");
 const bodyParser = require("body-parser"); 
 const mongoose = require("mongoose");
-require('dotenv').config();
+require('dotenv').config()
 
 const session = require("express-session");    // The express-session npm package is a middleware for managing sessions in Express.js, a popular web application framework for Node.js. Sessions are a crucial aspect of web applications as they allow the server to keep track of a user's state and data across multiple HTTP requests.
 const passport = require("passport");     //  Passport is a popular middleware for authentication in Node.js-based web applications. 
@@ -96,13 +95,13 @@ passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   callbackURL: "http://localhost:3000/auth/google/secrets"
-  },
-  function(accessToken, refreshToken, profile, cb) {
-    console.log(profile);    // Log the profile.
-    userModelConstructorFunction.findOrCreate({ googleId: profile.id }, function (err, user) {   //findOrCreate is not a mongodb function. It's something that the creators of this made up which we have to implement. So you can either write code for it or use an npm package called "mongoose-findorcreate".
-      return cb(err, user);
-    });
-  }
+},
+function(accessToken, refreshToken, profile, cb) {
+  console.log(profile);    // Log the profile.
+  userModelConstructorFunction.findOrCreate({ googleId: profile.id }, function (err, user) {   //findOrCreate is not a mongodb function. It's something that the creators of this made up which we have to implement. So you can either write code for it or use an npm package called "mongoose-findorcreate".
+    return cb(err, user);
+  });
+}
 ));
 
 // -----------------------------------------------------
