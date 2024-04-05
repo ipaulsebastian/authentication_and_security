@@ -108,13 +108,15 @@ function(accessToken, refreshToken, profile, cb) {
 app.get("/", function(req, res){
   console.log('zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz');
   res.render("home");
+  res.json({ message: 'Data received successfully' });
 });
 
 app.get('/auth/google',
   passport.authenticate('google', { scope: ["profile"] }),
   function(){
     console.log("gggggggggggggggggggggggggggggggggggggggggggg");   //Not printing.
-  });
+  }
+);
 
 
 app.get('/auth/google/secrets', 
@@ -123,7 +125,8 @@ app.get('/auth/google/secrets',
     // Successful authentication, redirect secrets.
     console.log('yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy');
     res.redirect('/secrets');
-  });
+  }
+);
 
 app.get("/register", function(req, res){
   console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
