@@ -43,25 +43,25 @@ app.use(passport.session());   // Initializes and utilizes session support for p
 
 mongoose.connect("mongodb://localhost:27017/userDB",{useNewURLParser:true});
 
-const userSchema= new mongoose.Schema({           //mongoose.Schema is a constructor function. Inorder to encrypt we are creating a mongoose schema.
+const userSchema= new mongoose.Schema({        //mongoose.Schema is a constructor function. Inorder to encrypt we are creating a mongoose schema.
   email: String,
   password: String,
   googleId: String,
-  active: Boolean     // For allowing only "active" users to authenticate. One example I can think  of is for cases like banning users etc.
+  active: Boolean     // For allowing only "active" users to authenticate. One example I can think of is for cases like banning users etc.
 });                         // Creating schema.
 
 //userSchema.plugin(passportLocalMongoose);   //This is what will be used to hash and salt our passwords and save our users into our mongoDB database.
  
 userSchema.plugin(passportLocalMongoose, {
-  // Set usernameUnique to false to avoid a mongodb index on the username column!   //?
-  usernameUnique: false,
+  usernameUnique: false,  // Specifies that the username field does not need to be unique. By default, passportLocalMongoose enforces uniqueness for usernames.
 
+  //'findByUsername' function : Overrides the default method for finding a user by username.
   findByUsername: function(model, queryParameters) {
-    // Add additional query parameter - AND condition - active: true  //?
-    queryParameters.active = true;
-    return model.findOne(queryParameters);
+    queryParameters.active = true;    // This custom function modifies the query parameters to include an additional condition (active: true), ensuring that only active users are found. 
+    return model.findOne(queryParameters);   // It then returns the result of finding a single user matching the modified query parameters. This customization allows for more control over the user lookup process, such as filtering out inactive users.
   }
 });
+
 userSchema.plugin(findOrCreate);
 
 const userModelConstructorFunction = new mongoose.model("UserCollection", userSchema);    // Creating a model constructor function. "UserCollection" mentioned as value in brackets is the name of the collection.
@@ -94,13 +94,13 @@ passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   callbackURL: "http://localhost:3000/auth/google/secrets"
-},
-function(accessToken, refreshToken, profile, cb) {
-  console.log(profile);    // Log the profile.
-  userModelConstructorFunction.findOrCreate({ googleId: profile.id }, function (err, user) {   //findOrCreate is not a mongodb function. It's something that the creators of this made up which we have to implement. So you can either write code for it or use an npm package called "mongoose-findorcreate".
-    return cb(err, user);
-  });
-}
+  },
+  function(accessToken, refreshToken, profile, cb) {
+    console.log(profile);    // Log the profile.
+    userModelConstructorFunction.findOrCreate({ googleId: profile.id }, function (err, user) {   //findOrCreate is not a mongodb function. It's something that the creators of this made up which we have to implement. So you can either write code for it or use an npm package called "mongoose-findorcreate".
+      return cb(err, user);
+    });
+  }
 ));
 
 // --------------------------------------------------------------------------------------------------------------
