@@ -118,6 +118,7 @@ app.get('/auth/google',
   }
 );
 
+// Successful authentication, redirects to secrets......................
 app.get('/auth/google/secrets', 
   passport.authenticate('google', { failureRedirect: '/login' }),     //Authenticate the user locally here.
   function(req, res) {
